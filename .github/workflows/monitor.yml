@@ -14,8 +14,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  monitor:
+  test_windows:
     runs-on: windows-latest
+    steps:
+      - name: Test connessione Albo Pretorio
+        shell: pwsh
+        run: |
+          try {
+            $r = Invoke-WebRequest `
+              -Uri "https://scafati.soluzionipa.it/openweb/albo/albo_pretorio.php" `
+              -Method Get `
+              -UseBasicParsing `
+              -TimeoutSec 20
+            Write-Host "HTTP $($r.StatusCode)"
+          }
+          catch {
+            Write-Host "Errore: $($_.Exception.Message)"
+          }
+  monitor:
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
