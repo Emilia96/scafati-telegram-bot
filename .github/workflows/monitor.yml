@@ -37,6 +37,25 @@ jobs:
 
       - name: Installa dipendenze
         run: pip install -r app/requirements.txt
+      - name: Diagnostica accesso Albo Pretorio
+        run: |
+          python - <<'PY'
+          import requests
+
+          url = "https://scafati.soluzionipa.it/openweb/albo/albo_pretorio.php"
+
+          for metodo in ("GET", "HEAD"):
+              try:
+                  response = requests.request(
+                      metodo, url, timeout=20,
+                      allow_redirects=True
+                  )
+                  print(f"{metodo}: HTTP {response.status_code}")
+                  print(f"URL finale: {response.url}")
+                  print(f"Content-Type: {response.headers.get('Content-Type')}")
+              except requests.RequestException as e:
+                  print(f"{metodo}: {type(e).__name__}: {e}")
+          PY
 
       - name: Controlla Albo Pretorio
         working-directory: app
