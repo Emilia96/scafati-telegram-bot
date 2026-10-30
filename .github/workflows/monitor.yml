@@ -1,0 +1,60 @@
+
+name: Monitor Albo Pretorio Scafati
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scafati-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Scarica codice
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Scarica database persistente
+        uses: actions/checkout@v4
+        with:
+          ref: bot-state
+          path: state
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa dipendenze
+        run: pip install -r app/requirements.txt
+
+      - name: Controlla Albo Pretorio
+        working-directory: app
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          DB_PATH: ../state/scafati.db
+          DRY_RUN: "true"
+        run: python scafati_bot.py
+
+      - name: Salva database aggiornato
+        if: success()
+        working-directory: state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f scafati.db
+          if ! git diff --cached --quiet; then
+            git commit -m "Aggiornamento archivio Albo Pretorio"
+            git push origin HEAD:bot-state
+          fi
