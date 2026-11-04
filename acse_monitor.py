@@ -25,10 +25,17 @@ logging.basicConfig(
 
 
 def leggi_comunicati():
-    response = requests.get(FEED_URL, timeout=30)
-    response.raise_for_status()
+    
+import subprocess
 
-    root = ET.fromstring(response.content)
+result = subprocess.run(
+    ["curl", "--fail", "--silent", "--show-error",
+     "--location", "--max-time", "30", FEED_URL],
+    capture_output=True,
+    check=True
+)
+
+root = ET.fromstring(result.stdout)
     comunicati = {}
 
     for item in root.findall("./channel/item"):
