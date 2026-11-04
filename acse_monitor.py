@@ -4,7 +4,7 @@ import sqlite3
 import logging
 from pathlib import Path
 from xml.etree import ElementTree as ET
-
+import subprocess
 import requests
 from dotenv import load_dotenv
 
@@ -24,18 +24,24 @@ logging.basicConfig(
 )
 
 
+
 def leggi_comunicati():
-    
-import subprocess
+    result = subprocess.run(
+        [
+            "curl",
+            "--fail",
+            "--silent",
+            "--show-error",
+            "--location",
+            "--max-time", "30",
+            FEED_URL
+        ],
+        capture_output=True,
+        check=True,
+        timeout=35
+    )
 
-result = subprocess.run(
-    ["curl", "--fail", "--silent", "--show-error",
-     "--location", "--max-time", "30", FEED_URL],
-    capture_output=True,
-    check=True
-)
-
-root = ET.fromstring(result.stdout)
+    root = ET.fromstring(result.stdout)
     comunicati = {}
 
     for item in root.findall("./channel/item"):
@@ -46,8 +52,10 @@ root = ET.fromstring(result.stdout)
         if not titolo or not url:
             continue
 
-        if not url.startswith(("https://acsespa.it/",
-                               "https://www.acsespa.it/")):
+        if not url.startswith((
+            "https://acsespa.it/",
+            "https://www.acsespa.it/"
+        )):
             continue
 
         comunicati[url] = {
@@ -57,10 +65,11 @@ root = ET.fromstring(result.stdout)
         }
 
     if not comunicati:
-        raise RuntimeError("Nessun comunicato trovato nel feed RSS")
+        raise RuntimeError(
+            "Nessun comunicato trovato nel feed RSS"
+        )
 
     return list(comunicati.values())
-
 
 def controlla():
     comunicati = leggi_comunicati()
